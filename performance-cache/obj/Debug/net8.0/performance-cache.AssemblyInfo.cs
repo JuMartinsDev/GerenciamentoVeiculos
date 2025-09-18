@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("performance-cache")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+270118779416751dc83c1156f05eb9cfe2734380")]
 [assembly: System.Reflection.AssemblyProductAttribute("performance-cache")]
 [assembly: System.Reflection.AssemblyTitleAttribute("performance-cache")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
