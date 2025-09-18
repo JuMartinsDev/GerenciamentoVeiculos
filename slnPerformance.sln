@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36109.1 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "performance-cache", "performance-cache\performance-cache.csproj", "{52865EC2-242E-450C-9F3C-EFED8498A97E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{52865EC2-242E-450C-9F3C-EFED8498A97E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52865EC2-242E-450C-9F3C-EFED8498A97E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52865EC2-242E-450C-9F3C-EFED8498A97E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52865EC2-242E-450C-9F3C-EFED8498A97E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {313D6EA0-7974-4E56-8CA8-32BD33D04135}
+	EndGlobalSection
+EndGlobal
