@@ -12,34 +12,34 @@ namespace performance_cache.Controllers
     [ApiController]
     public class VehicleController : ControllerBase
     {
-        private const string key = "get-vehicles";
+        private const string cacheKey = "vehicles-cache";
         private const string redisConnection = "localhost:6379";
-        private const string connectionString = "Server=localhost;database=fiap;User=root;Password=123";
+        private const string connectionString = "Server=localhost;Database=fiap;User=root;Password=123;Port=3306;";
 
         // GET: api/vehicle
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            // Implementando o cache
             var redis = ConnectionMultiplexer.Connect(redisConnection);
-            IDatabase db = redis.GetDatabase();
-            await db.KeyExpireAsync(key, TimeSpan.FromMinutes(20));
-            string vehicleValue = await db.StringGetAsync(key);
+            IDatabase dbRedis = redis.GetDatabase();
+            await dbRedis.KeyExpireAsync(cacheKey, TimeSpan.FromMinutes(20));
 
-            if (!string.IsNullOrEmpty(vehicleValue))
+            string cachedVehicles = await dbRedis.StringGetAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cachedVehicles))
             {
-                return Ok(vehicleValue);
+                return Ok(cachedVehicles);
             }
 
-            // Buscando no banco de dados
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
-            string sql = "SELECT id, brand, model, year, plate FROM vehicle;";
-            var vehicles = await connection.QueryAsync<Vehicle>(sql);
-            var vehiclesJson = JsonConvert.SerializeObject(vehicles);
-            await db.StringSetAsync(key, vehiclesJson); // Configura o cache
 
-            return Ok(vehicles);
+            string sql = "SELECT id, brand, model, year, plate, color FROM vehicle;";
+            var vehicleList = await connection.QueryAsync<Vehicle>(sql);
+            var vehicleListJson = JsonConvert.SerializeObject(vehicleList);
+
+            await dbRedis.StringSetAsync(cacheKey, vehicleListJson);
+
+            return Ok(vehicleList);
         }
 
         // POST: api/vehicle
@@ -47,23 +47,20 @@ namespace performance_cache.Controllers
         public async Task<IActionResult> Post([FromBody] Vehicle vehicle)
         {
             if (vehicle == null)
-            {
-                return BadRequest("Dados inválidos.");
-            }
+                return BadRequest("Veículo inválido.");
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
 
             string sql = @"
-                INSERT INTO vehicle (brand, model, year, plate)
-                VALUES (@Brand, @Model, @Year, @Plate);
+                INSERT INTO vehicle (brand, model, year, plate, color)
+                VALUES (@Brand, @Model, @Year, @Plate, @Color);
                 SELECT LAST_INSERT_ID();
             ";
 
-            var newId = await connection.QuerySingleAsync<int>(sql, vehicle);
+            int newId = await connection.QuerySingleAsync<int>(sql, vehicle);
             vehicle.Id = newId;
 
-            // Invalidar o cache anterior
             await InvalidateCache();
 
             return CreatedAtAction(nameof(Get), new { id = newId }, vehicle);
@@ -74,35 +71,28 @@ namespace performance_cache.Controllers
         public async Task<IActionResult> Put(int id, [FromBody] Vehicle vehicle)
         {
             if (vehicle == null)
-            {
                 return BadRequest("Veículo não fornecido.");
-            }
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
             vehicle.Id = id;
 
-            // Atualizando os dados do veículo
             string sql = @"
-            UPDATE vehicle
-            SET
-                brand = @Brand,
-                model = @Model,
-                year = @Year,
-                plate = @Plate
-            WHERE id = @Id;
+                UPDATE vehicle
+                SET brand = @Brand,
+                    model = @Model,
+                    year = @Year,
+                    plate = @Plate,
+                    color = @Color
+                WHERE id = @Id;
             ";
 
-            var rowsAffected = await connection.ExecuteAsync(sql, vehicle);
+            int affectedRows = await connection.ExecuteAsync(sql, vehicle);
 
-            if (rowsAffected == 0)
-            {
-                return NotFound("Nenhum veículo encontrado!");
-            }
+            if (affectedRows == 0)
+                return NotFound("Veículo não encontrado para atualização.");
 
-            // Invalidar o cache
             await InvalidateCache();
-
             return NoContent();
         }
 
@@ -110,26 +100,19 @@ namespace performance_cache.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            if (id == null)
-            {
-                return BadRequest("ID do veículo não fornecido.");
-            }
+            if (id <= 0)
+                return BadRequest("ID inválido.");
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
 
-            string sql = @"
-                DELETE FROM vehicle
-                WHERE id = @Id;
-            ";
+            string sql = "DELETE FROM vehicle WHERE id = @Id;";
+            int deletedRows = await connection.ExecuteAsync(sql, new { id });
 
-            var rowsAffected = await connection.ExecuteAsync(sql, new { id });
             await InvalidateCache();
 
-            if (rowsAffected == 0)
-            {
-                return NotFound("Veículo não encontrado.");
-            }
+            if (deletedRows == 0)
+                return NotFound("Veículo não encontrado para exclusão.");
 
             return NoContent();
         }
@@ -137,8 +120,8 @@ namespace performance_cache.Controllers
         private async Task InvalidateCache()
         {
             var redis = ConnectionMultiplexer.Connect(redisConnection);
-            IDatabase db = redis.GetDatabase();
-            await db.KeyDeleteAsync(key);
+            IDatabase dbRedis = redis.GetDatabase();
+            await dbRedis.KeyDeleteAsync(cacheKey);
         }
     }
 }
